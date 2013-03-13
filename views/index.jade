@@ -1,0 +1,17 @@
+extends layout
+
+block content
+	div(class="user")
+		if (typeof(user) !== 'undefined')
+
+			|Hello #{user.displayName} [
+			a(href="/logout") Logout
+			| ]
+		else
+			a(href="/auth/google") Sign In with Google
+	div(class="deal")
+		span(id="receiver")=counter
+		p(id="lastdeal") Items available
+		button(type="submit", name="op", value="s", id="sender") Get it, get it now!
+		p Items purchased:
+			span(id="itemsBought")=0
