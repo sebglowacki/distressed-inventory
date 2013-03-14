@@ -7,10 +7,6 @@ var connect = require('connect')
 var passport = require('passport')
     , GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 
-var GOOGLE_CLIENT_ID = "529570409339.apps.googleusercontent.com";
-var GOOGLE_CLIENT_SECRET = "QeWUqNC6_n3q1EO2fcZJJ2ES";
-var CALLBACK_URL = "http://sebglowacki.distressed-inventory.nodejitsu.com/auth/google/callback";
-
 // Passport session setup.
 //   To support persistent login sessions, Passport needs to be able to
 //   serialize users into and deserialize users out of the session.  Typically,
@@ -32,9 +28,9 @@ passport.deserializeUser(function(obj, done) {
 //   credentials (in this case, an accessToken, refreshToken, and Google
 //   profile), and invoke a callback with a user object.
 passport.use(new GoogleStrategy({
-        clientID: GOOGLE_CLIENT_ID,
-        clientSecret: GOOGLE_CLIENT_SECRET,
-        callbackURL: CALLBACK_URL
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL: process.env.CALLBACK_URL
     },
     function(accessToken, refreshToken, profile, done) {
         // asynchronous verification, for effect...
