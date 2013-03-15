@@ -4,6 +4,13 @@ var connect = require('connect')
     , io = require('socket.io')
     , port = (process.env.PORT || 3000);
 
+
+var googleapis = require('googleapis'),
+    OAuth2Client = googleapis.OAuth2Client;
+
+var oauth2Client =
+    new OAuth2Client(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, process.env.CALLBACK_URL);
+
 var passport = require('passport')
     , GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 
@@ -33,8 +40,16 @@ passport.use(new GoogleStrategy({
         callbackURL: process.env.CALLBACK_URL
     },
     function(accessToken, refreshToken, profile, done) {
+
+        oauth2Client.credentials = {
+            access_token: accessToken,
+            refresh_token: refreshToken
+        };
+
         // asynchronous verification, for effect...
         process.nextTick(function () {
+
+            console.log(profile);
 
             // To keep the example simple, the user's Google profile is returned to
             // represent the logged-in user.  In a typical application, you would want
@@ -103,6 +118,13 @@ io.sockets.on('connection', function (socket) {
 //    });
     socket.on('disconnect', function () {
         console.log('Client Disconnected.');
+    });
+
+    socket.on('userId', function(data) {
+       console.log(data);
+       console.log(socket.id);
+
+        io.sockets.socket(socket.id).emit('log', 'Personalized message');
     });
 
     eventer.on('sold', function () {
@@ -175,8 +197,13 @@ server.post('/admin', function (req, res) {
 //   redirecting the user to google.com.  After authorization, Google
 //   will redirect the user back to this application at /auth/google/callback
 server.get('/auth/google',
-    passport.authenticate('google', { scope: ['https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/userinfo.email'] }),
+    passport.authenticate('google', {
+        scope: [
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/plus.login'
+        ]
+    }),
     function(req, res){
         // The request will be redirected to Google for authentication, so this
         // function will not be called.
@@ -190,8 +217,30 @@ server.get('/auth/google',
 server.get('/auth/google/callback',
     passport.authenticate('google', { failureRedirect: '/login' }),
     function(req, res) {
-        console.log(req.user);
-        res.redirect('/');
+//        console.log('request', req.user.id);
+
+        googleapis.load('plus', 'v1', function(err, client) {
+            client.plus.people.list({ userId: 'me', collection: 'visible' }).withAuthClient(oauth2Client).execute(function(err, results) {
+                if (err) {
+                    console.log(err.message);
+                } else {
+                    console.log(results);
+                }
+            });
+
+        });
+
+        res.cookie('User-Id', req.user.id);
+        res.redirect('/?userId=' + req.user.id);
+
+//        res.writeHead(302, {
+//            "location": "/",
+//            "Cache-Control" : "no-cache, no-store, must-revalidate",
+//            "Pragma": "no-cache",
+//            "Expires": 0,
+//            "UserId": req.user.id
+//        });
+//        res.end();
     });
 
 server.get('/logout', function(req, res){

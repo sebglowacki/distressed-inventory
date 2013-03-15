@@ -1,3 +1,8 @@
+function getParameterByName(name) {
+    var match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+}
+
 $(document).ready(function () {
 
     var socket = io.connect();
@@ -35,4 +40,16 @@ $(document).ready(function () {
             $('#lastdeal').text('Hurry up!');
         }
     });
+
+    socket.on('log', function(data) {
+        console.log(data);
+        $('#log').text(data);
+    });
+
+
+    var userId = getParameterByName("userId");
+    if (userId != undefined) {
+        socket.emit('userId', userId);
+        console.log(userId);
+    }
 });

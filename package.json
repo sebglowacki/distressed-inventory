@@ -9,7 +9,8 @@
         "jade": "0.26.3",
         "socket.io": "0.8.7",
         "passport": ">= 0.0.0",
-        "passport-google-oauth": ">= 0.0.0"
+        "passport-google-oauth": ">= 0.0.0",
+        "googleapis": ">= 0.0.0"
     },
     "devDependencies": {
         "vows": "0.5.x",
