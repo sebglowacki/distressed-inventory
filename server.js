@@ -21,11 +21,11 @@ var passport = require('passport')
 //   the user by ID when deserializing.  However, since this example does not
 //   have a database of user records, the complete Google profile is
 //   serialized and deserialized.
-passport.serializeUser(function(user, done) {
+passport.serializeUser(function (user, done) {
     done(null, user);
 });
 
-passport.deserializeUser(function(obj, done) {
+passport.deserializeUser(function (obj, done) {
     done(null, obj);
 });
 
@@ -39,7 +39,7 @@ passport.use(new GoogleStrategy({
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         callbackURL: process.env.CALLBACK_URL
     },
-    function(accessToken, refreshToken, profile, done) {
+    function (accessToken, refreshToken, profile, done) {
 
         oauth2Client.credentials = {
             access_token: accessToken,
@@ -90,41 +90,29 @@ server.error(function (err, req, res, next) {
 });
 server.listen(port);
 
+var userFriends = {};
+var userSocket = {};
 var events = require('events');
 var util = require('util');
 
-// The Thing That Emits Event
 Eventer = function () {
     events.EventEmitter.call(this);
-    this.sendCmd = function (cmd) {
-        this.emit(cmd);
+    this.sendCmd = function (cmd, data) {
+        this.emit(cmd, data);
     };
 };
 util.inherits(Eventer, events.EventEmitter);
-
-
-// The thing that drives the two.
 var eventer = new Eventer();
 
-
-//Setup Socket.IO
 var io = io.listen(server);
 io.sockets.on('connection', function (socket) {
     console.log('Client Connected');
-//    socket.on('message', function (data) {
-//        sell();
-//        socket.broadcast.emit('server_message', counter);
-//        socket.emit('server_message', counter);
-//    });
     socket.on('disconnect', function () {
         console.log('Client Disconnected.');
     });
 
-    socket.on('userId', function(data) {
-       console.log(data);
-       console.log(socket.id);
-
-        io.sockets.socket(socket.id).emit('log', 'Personalized message');
+    socket.on('userId', function (userId) {
+        userSocket[userId] = socket.id;
     });
 
     eventer.on('sold', function () {
@@ -134,6 +122,7 @@ io.sockets.on('connection', function (socket) {
     eventer.on('updated', function () {
         socket.broadcast.emit('server_message', counter);
     });
+
 });
 
 var counter = 88;
@@ -162,9 +151,25 @@ server.get('/', function (req, res) {
             author: 'Seb Glowacki',
             counter: counter,
             analyticssiteid: 'XXXXXXX',
-            user: req.user
         }
     });
+});
+
+server.get('/user/:userId', function (req, res) {
+    if (req.isAuthenticated()) {
+        res.render('user.jade', {
+            locals: {
+                title: 'Distressed Inventory',
+                description: 'Friends log',
+                author: 'Seb Glowacki',
+                counter: counter,
+                analyticssiteid: 'XXXXXXX',
+                user: req.user
+            }
+        });
+    }else {
+        res.redirect('/');
+    }
 });
 
 server.get('/admin', function (req, res) {
@@ -179,9 +184,34 @@ server.get('/counter', function (req, res) {
     res.json({ counter: counter });
 });
 
+function tellFriends(user) {
+    var friends = userFriends[user.id].items;
+    if (friends != undefined) {
+        console.log('Looking for friends');
+        var connectedUsers = Object.keys(userSocket);
+        for (var i = 0; i < connectedUsers.length; i++) {
+            var connUser = connectedUsers[i];
+            if (connUser !== user.id) {
+                for (var j = 0; j < friends.length; j++) {
+                    var friend = friends[j];
+                    if (friend.id === connUser) {
+                        console.log('found connected friend', connUser);
+                        io.sockets.socket(userSocket[connUser]).emit('log', user.displayName + ' just bought this item!');
+                    }
+                }
+            }
+        }
+    } else {
+        console.log('User has no friends')
+    }
+}
+
 server.post('/order', function (req, res) {
-    if (sell())
+    if (sell()) {
+        if (req.isAuthenticated())
+            tellFriends(req.user);
         res.json({ sold: 'yes' });
+    }
 });
 
 server.post('/admin', function (req, res) {
@@ -194,56 +224,47 @@ server.post('/admin', function (req, res) {
 // GET /auth/google
 //   Use passport.authenticate() as route middleware to authenticate the
 //   request.  The first step in Google authentication will involve
-//   redirecting the user to google.com.  After authorization, Google
-//   will redirect the user back to this application at /auth/google/callback
+//   redirecting the connUser to google.com.  After authorization, Google
+//   will redirect the connUser back to this application at /auth/google/callback
 server.get('/auth/google',
     passport.authenticate('google', {
         scope: [
-        'https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/userinfo.email',
-        'https://www.googleapis.com/auth/plus.login'
+            'https://www.googleapis.com/auth/userinfo.profile',
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/plus.login'
         ]
     }),
-    function(req, res){
+    function (req, res) {
         // The request will be redirected to Google for authentication, so this
         // function will not be called.
     });
 
 // GET /auth/google/callback
 //   Use passport.authenticate() as route middleware to authenticate the
-//   request.  If authentication fails, the user will be redirected back to the
+//   request.  If authentication fails, the connUser will be redirected back to the
 //   login page.  Otherwise, the primary route function function will be called,
-//   which, in this example, will redirect the user to the home page.
+//   which, in this example, will redirect the connUser to the home page.
 server.get('/auth/google/callback',
     passport.authenticate('google', { failureRedirect: '/login' }),
-    function(req, res) {
-//        console.log('request', req.user.id);
-
-        googleapis.load('plus', 'v1', function(err, client) {
-            client.plus.people.list({ userId: 'me', collection: 'visible' }).withAuthClient(oauth2Client).execute(function(err, results) {
+    function (req, res) {
+        googleapis.load('plus', 'v1', function (err, client) {
+            client.plus.people.list({ userId: 'me', collection: 'visible' }).withAuthClient(oauth2Client).execute(function (err, results) {
                 if (err) {
                     console.log(err.message);
                 } else {
-                    console.log(results);
+//                    console.log(results);
+                    userFriends[req.user.id] = results;
                 }
             });
-
         });
 
         res.cookie('User-Id', req.user.id);
-        res.redirect('/?userId=' + req.user.id);
-
-//        res.writeHead(302, {
-//            "location": "/",
-//            "Cache-Control" : "no-cache, no-store, must-revalidate",
-//            "Pragma": "no-cache",
-//            "Expires": 0,
-//            "UserId": req.user.id
-//        });
-//        res.end();
+        res.redirect('/user/' + req.user.id);
     });
 
-server.get('/logout', function(req, res){
+server.get('/logout', function (req, res) {
+    delete userFriends[req.user.id];
+    delete userSocket[req.user.id];
     req.logout();
     res.redirect('/');
 });
@@ -265,14 +286,5 @@ function NotFound(msg) {
     Error.captureStackTrace(this, arguments.callee);
 }
 
-// Simple route middleware to ensure user is authenticated.
-//   Use this route middleware on any resource that needs to be protected.  If
-//   the request is authenticated (typically via a persistent login session),
-//   the request will proceed.  Otherwise, the user will be redirected to the
-//   login page.
-function ensureAuthenticated(req, res, next) {
-    if (req.isAuthenticated()) { return next(); }
-    res.redirect('/login');
-}
 
 console.log('Listening on http://0.0.0.0:' + port);

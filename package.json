@@ -2,7 +2,7 @@
     "name": "distressed-inventory",
     "description": "Distressed Inventory spike",
     "author": "Seb Glowacki <sebastian.glowacki@gmail.com>",
-    "version": "0.0.1-10",
+    "version": "0.0.1-11",
     "dependencies": {
         "connect": "1.8.5",
         "express": "2.5.2",
@@ -10,7 +10,7 @@
         "socket.io": "0.8.7",
         "passport": ">= 0.0.0",
         "passport-google-oauth": ">= 0.0.0",
-        "googleapis": ">= 0.0.0"
+        "googleapis": ">= 0.2.2-alpha"
     },
     "devDependencies": {
         "vows": "0.5.x",

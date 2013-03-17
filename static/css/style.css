@@ -113,7 +113,15 @@ textarea {
     font-size: 2em;
 }
 
+#log {
+    text-align: center;
+    margin-top: 20px;
+}
+
 .user {
+    text-align: right;
+}
+.cart {
     text-align: right;
 }
 
@@ -158,7 +166,6 @@ button:active {
     border-top-color: #000000;
     background: #000000;
 }
-
 
 
 

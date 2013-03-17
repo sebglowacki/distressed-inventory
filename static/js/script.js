@@ -1,12 +1,8 @@
-function getParameterByName(name) {
-    var match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
-    return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
-}
-
 $(document).ready(function () {
 
     var socket = io.connect();
     var itemsBought = 0;
+    var log = [];
 
     $('#sender').bind('click', function () {
 
@@ -41,15 +37,32 @@ $(document).ready(function () {
         }
     });
 
-    socket.on('log', function(data) {
-        console.log(data);
-        $('#log').text(data);
+    socket.on('log', function (data) {
+        var logItem = $('.logItem');
+        var itemCount = logItem.length;
+        var logEntry = '<div class="logItem" id="logItem' + itemCount + '">' + data + '</div>';
+
+        var logContainer = $('#log');
+        if (itemCount == 0) {
+            logContainer.append(logEntry);
+
+        } else {
+            if (itemCount == 5) {
+                logItem.last().remove();
+            }
+            if (itemCount > 0) {
+                logItem.first().before(logEntry);
+            }
+        }
+        logContainer.children().fadeOut(5000);
     });
 
-
-    var userId = getParameterByName("userId");
-    if (userId != undefined) {
-        socket.emit('userId', userId);
-        console.log(userId);
+    var url = document.URL;
+    if (url.indexOf('/user/') !== -1) {
+        var userId = url.substring(url.lastIndexOf('/') + 1, url.length);
+        if (userId !== undefined) {
+            socket.emit('userId', userId);
+        }
     }
+
 });

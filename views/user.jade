@@ -2,7 +2,9 @@ extends layout
 
 block content
 	div(class="user")
-		a(href="/auth/google") Sign In with Google
+		| Hello #{user.displayName} [
+		a(href="/logout") Logout
+		| ]
 	div(class="cart")
 		span Items purchased:
 		span(id="itemsBought")=0
@@ -10,3 +12,4 @@ block content
 		span(id="receiver")=counter
 		p(id="lastdeal") Items available
 		button(type="submit", name="op", value="s", id="sender") Get it, get it now!
+	div(id="log")
