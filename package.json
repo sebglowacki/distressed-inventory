@@ -10,7 +10,8 @@
         "socket.io": "0.8.7",
         "passport": ">= 0.0.0",
         "passport-google-oauth": ">= 0.0.0",
-        "googleapis": ">= 0.2.2-alpha"
+        "googleapis": ">= 0.2.2-alpha",
+        "connect-redis": ">= 1.4.5"
     },
     "devDependencies": {
         "vows": "0.5.x",

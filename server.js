@@ -76,6 +76,18 @@ server.configure(function () {
     server.use(server.router);
 });
 
+server.configure('development', function() {
+    server.use(express.session({ secret: "shhhhhhhhh!"}));
+
+});
+
+// var RedisStore = require('connect-redis')(express);
+// server.configure('production', function() {
+    // console.log('Configuring production mode');
+    // server.use(express.session({ store: new RedisStore, secret: 'lolcat' }));
+    // server.use(express.session({ store: new RedisStore({host:'nodejitsudb6619500089.redis.irstack.com', port:6380, prefix:'chs-sess'}), secret: 'nodejitsudb6619500089.redis.irstack.com:f327cfe980c971946e80b8e975fbebb4' }));
+// });
+
 //setup the errors
 server.error(function (err, req, res, next) {
     if (err instanceof NotFound) {
@@ -103,6 +115,7 @@ Eventer = function () {
 };
 util.inherits(Eventer, events.EventEmitter);
 var eventer = new Eventer();
+eventer.setMaxListeners(0);
 
 var io = io.listen(server);
 io.sockets.on('connection', function (socket) {
@@ -120,7 +133,7 @@ io.sockets.on('connection', function (socket) {
     });
 
     eventer.on('updated', function () {
-        socket.broadcast.emit('server_message', counter);
+        socket.emit('server_message', counter);
     });
 
 });
