@@ -116,7 +116,7 @@ io.sockets.on('connection', function (socket) {
     });
 
     eventer.on('sold', function () {
-        socket.broadcast.emit('server_message', counter);
+        socket.emit('server_message', counter);
     });
 
     eventer.on('updated', function () {
@@ -215,7 +215,7 @@ server.post('/order', function (req, res) {
 });
 
 server.post('/admin', function (req, res) {
-    counter = req.body.counter;
+    counter = parseInt(req.body.counter);
     res.json({ counter: counter });
     eventer.sendCmd('updated');
 });
